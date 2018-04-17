@@ -17,7 +17,7 @@ if sys.version_info[0] == 2:  # Python 2
 else:  # Python 3
     from urllib.parse import quote
 
-
+class TrendReq(object):
     """
     Google Trends API
     """
