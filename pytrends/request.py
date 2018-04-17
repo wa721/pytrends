@@ -3,7 +3,11 @@ from __future__ import absolute_import, print_function, unicode_literals
 import json
 import sys
 
-import pandas as pd
+try:
+    import pandas as pd
+except:
+    None
+
 import requests
 
 from pytrends import exceptions
@@ -14,7 +18,6 @@ else:  # Python 3
     from urllib.parse import quote
 
 
-class TrendReq(object):
     """
     Google Trends API
     """
@@ -31,7 +34,8 @@ class TrendReq(object):
     SUGGESTIONS_URL = 'https://trends.google.com/trends/api/autocomplete/'
     CATEGORIES_URL = 'https://trends.google.com/trends/api/explore/pickers/category'
 
-    def __init__(self, hl='en-US', tz=360, geo=''):
+    def __init__(self, hl='en-US', tz=360, geo='',raw=False):
+        self.raw_status = raw
         """
         Initialize default values for params
         """
@@ -156,33 +160,35 @@ class TrendReq(object):
             trim_chars=5,
             params=over_time_payload,
         )
-
-        df = pd.DataFrame(req_json['default']['timelineData'])
-        if (df.empty):
-            return df
-
-        df['date'] = pd.to_datetime(df['time'].astype(dtype='float64'), unit='s')
-        df = df.set_index(['date']).sort_index()
-        # split list columns into seperate ones, remove brackets and split on comma
-        result_df = df['value'].apply(lambda x: pd.Series(str(x).replace('[', '').replace(']', '').split(',')))
-        # rename each column with its search term, relying on order that google provides...
-        for idx, kw in enumerate(self.kw_list):
-            result_df[kw] = result_df[idx].astype('int')
-            del result_df[idx]
-
-        if 'isPartial' in df:
-            # make other dataframe from isPartial key data
-            # split list columns into seperate ones, remove brackets and split on comma
-            df = df.fillna(False)
-            result_df2 = df['isPartial'].apply(lambda x: pd.Series(str(x).replace('[', '').replace(']', '').split(',')))
-            result_df2.columns = ['isPartial']
-            # concatenate the two dataframes
-            final = pd.concat([result_df, result_df2], axis=1)
+        if self.raw_status:
+            return req_json
         else:
-            final = result_df
-            final['isPartial'] = False
+            df = pd.DataFrame(req_json['default']['timelineData'])
+            if (df.empty):
+                return df
 
-        return final
+            df['date'] = pd.to_datetime(df['time'].astype(dtype='float64'), unit='s')
+            df = df.set_index(['date']).sort_index()
+            # split list columns into seperate ones, remove brackets and split on comma
+            result_df = df['value'].apply(lambda x: pd.Series(str(x).replace('[', '').replace(']', '').split(',')))
+            # rename each column with its search term, relying on order that google provides...
+            for idx, kw in enumerate(self.kw_list):
+                result_df[kw] = result_df[idx].astype('int')
+                del result_df[idx]
+
+            if 'isPartial' in df:
+                # make other dataframe from isPartial key data
+                # split list columns into seperate ones, remove brackets and split on comma
+                df = df.fillna(False)
+                result_df2 = df['isPartial'].apply(lambda x: pd.Series(str(x).replace('[', '').replace(']', '').split(',')))
+                result_df2.columns = ['isPartial']
+                # concatenate the two dataframes
+                final = pd.concat([result_df, result_df2], axis=1)
+            else:
+                final = result_df
+                final['isPartial'] = False
+
+            return final
 
     def interest_by_region(self, resolution='COUNTRY'):
         """Request data from Google's Interest by Region section and return a dataframe"""
