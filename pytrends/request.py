@@ -35,7 +35,7 @@ else:  # Python 3
     CATEGORIES_URL = 'https://trends.google.com/trends/api/explore/pickers/category'
 
     def __init__(self, hl='en-US', tz=360, geo='',raw=False):
-        self.raw_status = raw
+
         """
         Initialize default values for params
         """
@@ -48,6 +48,7 @@ else:  # Python 3
         self.hl = hl
         self.geo = geo
         self.kw_list = list()
+        self.raw_status = raw
 
         # intialize widget payloads
         self.token_payload = dict()
